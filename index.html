@@ -3,478 +3,609 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Neon Snake — Play!</title>
+<title>Realistic Snake — Smooth & Scaly</title>
 <style>
   :root{
-    --bg:#081226;
-    --panel:#071029;
-    --accent:#7c5cff;
-    --accent2:#00e5ff;
-    --muted:#9fb0c8;
-    --danger:#ff6b6b;
-    --tile: #0f2033;
+    --bg1: #0b1a12;
+    --bg2: #071210;
+    --panel: rgba(255,255,255,0.03);
+    --muted: #9db19f;
+    --accent: #b2d8b2;
   }
   *{box-sizing:border-box}
   body{
     margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
-    font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    background: linear-gradient(180deg,var(--bg), #02101a 70%);
-    color:#eaf3ff;
-    padding:20px;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: linear-gradient(180deg,var(--bg1),var(--bg2));
+    color:#eaf3ea; padding:18px;
   }
 
-  .app{
-    width:100%; max-width:920px; display:grid; gap:18px;
-    grid-template-columns: 320px 1fr;
-    align-items:start;
+  .wrap{
+    width:100%; max-width:980px; display:grid; grid-template-columns: 360px 1fr; gap:18px;
   }
-
-  /* Responsive: stack on mobile */
-  @media (max-width:820px){
-    .app { grid-template-columns: 1fr; max-width:720px; }
-  }
+  @media (max-width:880px){ .wrap{ grid-template-columns: 1fr } }
 
   .panel{
-    background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
-    border-radius:14px; padding:16px; box-shadow: 0 10px 30px rgba(2,6,23,.6); border:1px solid rgba(255,255,255,.03);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008));
+    border-radius:12px; padding:14px; border:1px solid rgba(255,255,255,0.03);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
   }
 
-  .left { display:flex; flex-direction:column; gap:12px; min-height:200px; }
-  h1{margin:0; font-size:20px; letter-spacing:0.02em}
-  .subtitle{color:var(--muted); font-size:13px}
-  .scoreboard{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-  .badge{background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#031026; padding:8px 10px; border-radius:10px; font-weight:700}
+  h1{margin:0 0 6px 0; font-size:18px}
+  .muted{color:var(--muted); font-size:13px}
 
-  /* Canvas holder */
-  .game-wrap{background:linear-gradient(180deg, rgba(255,255,255,.01), rgba(255,255,255,.005)); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:10px; align-items:center; justify-content:center;}
-  canvas{background: linear-gradient(180deg,var(--tile), #081b2b); border-radius:10px; box-shadow: inset 0 6px 30px rgba(0,0,0,.6); width:100%; height:auto; max-height:720px; display:block;}
+  .score-row{display:flex; gap:10px; align-items:center; margin:12px 0}
+  .badge{background:linear-gradient(90deg,#2f6b3a,#8fd19a); color:#04210a; padding:8px 10px; border-radius:8px; font-weight:700}
 
-  /* Controls (mobile) */
-  .controls{display:flex; gap:8px; justify-content:space-between; align-items:center; width:100%}
-  .touch-pad{display:grid; grid-template-columns: repeat(3, 64px); gap:8px; justify-content:center; align-items:center;}
-  .btn{
-    width:64px;height:64px;border-radius:12px;border:1px solid rgba(255,255,255,.04);
-    background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.005));
-    display:flex;align-items:center;justify-content:center;color:var(--muted);
-    font-weight:700;user-select:none; touch-action:none;
-  }
-  .big-btn{width:100%; padding:12px 14px; border-radius:12px; background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#031026; font-weight:800; border:none; cursor:pointer}
-  .small{padding:8px 10px; font-size:13px}
+  /* Canvas container */
+  .game-area{display:flex; flex-direction:column; gap:10px; align-items:center; justify-content:center}
+  canvas{width:100%; height:auto; border-radius:12px; box-shadow: inset 0 8px 30px rgba(0,0,0,0.5); background: linear-gradient(180deg,#08140e,#04100b)}
 
-  .footer-hint{font-size:13px;color:var(--muted)}
+  .controls{display:flex; gap:8px; margin-top:6px}
+  button{background:var(--panel); color:var(--muted); border:1px solid rgba(255,255,255,0.03); padding:8px 12px; border-radius:8px; cursor:pointer}
+  button.primary{background:linear-gradient(90deg,#3aa65b,#b3e6b3); color:#053017; font-weight:800}
+  .small{padding:6px 8px}
 
-  /* Visual: grid overlay small */
-  .grid-overlay{position:relative}
-  .overlay-hint{position:absolute; top:10px; right:14px; font-size:12px; color:var(--muted)}
+  .footer{margin-top:10px; color:var(--muted); font-size:13px}
 </style>
 </head>
 <body>
-  <div class="app">
-    <!-- Left panel: controls + info -->
-    <div class="panel left">
-      <div>
-        <h1>Neon Snake</h1>
-        <div class="subtitle">Retro fun with modern style — keyboard or touch controls.</div>
-      </div>
+  <div class="wrap">
+    <div class="panel">
+      <h1>Realistic Snake</h1>
+      <div class="muted">Smooth curves • Scales texture • Natural head & tongue</div>
 
-      <div class="scoreboard">
+      <div class="score-row" style="margin-top:14px">
         <div>Score: <span id="score" class="badge">0</span></div>
-        <div>High: <span id="highscore" class="badge">0</span></div>
+        <div>High: <span id="high" class="badge">0</span></div>
       </div>
 
-      <div style="display:flex; gap:8px;">
-        <button id="startBtn" class="big-btn">Start</button>
-        <button id="pauseBtn" class="big-btn small">Pause</button>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button id="start" class="primary">Start</button>
+        <button id="pause" class="small">Pause</button>
+        <button id="reset" class="small">Reset</button>
       </div>
 
-      <div style="display:flex; gap:8px;">
-        <button id="speedDown" class="btn small">- Speed</button>
-        <button id="speedUp" class="btn small">+ Speed</button>
-        <button id="resetHigh" class="btn small">Reset High</button>
-      </div>
-
-      <div style="margin-top:8px;">
-        <div class="subtitle">Controls</div>
-        <ul style="margin:6px 0 0 18px; color:var(--muted)">
-          <li>Arrows / WASD to move</li>
-          <li>Mobile: use on-screen arrows or swipe</li>
-          <li>Eat food to grow — don't hit walls or yourself</li>
-        </ul>
-      </div>
-
-      <div style="margin-top:8px;">
-        <div class="subtitle">Settings</div>
-        <div style="display:flex; gap:8px; margin-top:6px; align-items:center;">
-          <label style="color:var(--muted)">Grid:
-            <select id="gridSize" style="margin-left:6px; padding:6px; border-radius:8px; background:transparent; color:inherit;">
-              <option value="15">15 x 15</option>
-              <option value="20" selected>20 x 20</option>
-              <option value="25">25 x 25</option>
-              <option value="30">30 x 30</option>
-            </select>
-          </label>
-          <label style="color:var(--muted)">Wrap:
-            <input id="wrapToggle" type="checkbox" style="margin-left:6px">
+      <div style="margin-top:14px;">
+        <label class="muted">Speed: <span id="speedLabel">1</span>x</label>
+        <div style="display:flex; gap:8px; margin-top:6px;">
+          <button id="slower" class="small">-</button>
+          <button id="faster" class="small">+</button>
+          <label style="margin-left:auto" class="muted">Wrap:
+            <input id="wrap" type="checkbox" style="margin-left:6px" />
           </label>
         </div>
       </div>
 
-      <div style="margin-top:auto">
-        <div class="footer-hint">Made for fun • Local high score saved in your browser</div>
+      <div style="margin-top:12px;">
+        <label class="muted">Grid size:
+          <select id="grid" style="margin-left:6px; padding:6px; border-radius:6px;">
+            <option value="12">12 × 12 (big tiles)</option>
+            <option value="16">16 × 16</option>
+            <option value="20" selected>20 × 20</option>
+            <option value="26">26 × 26 (smooth)</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="footer">
+        Controls: Arrow keys or WASD • Mobile: Swipe on canvas • Scores saved locally.
       </div>
     </div>
 
-    <!-- Right panel: game canvas -->
-    <div class="panel game-wrap">
-      <div style="display:flex; width:100%; justify-content:space-between; align-items:center;">
-        <div class="subtitle">Play area</div>
-        <div class="overlay-hint">Swipe or use arrows</div>
+    <div class="panel game-area">
+      <canvas id="c" width="800" height="800" aria-label="Realistic Snake Canvas"></canvas>
+
+      <div style="width:100%; display:flex; gap:8px; justify-content:center;">
+        <button id="left" class="small">◀</button>
+        <button id="up" class="small">▲</button>
+        <button id="down" class="small">▼</button>
+        <button id="right" class="small">▶</button>
       </div>
-
-      <div class="grid-overlay" style="width:100%;">
-        <canvas id="game" width="600" height="600" aria-label="Snake game canvas"></canvas>
-      </div>
-
-      <!-- Touch controls for mobile -->
-      <div style="width:100%; display:flex; justify-content:center; margin-top:6px;">
-        <div class="controls" id="touchControls" style="max-width:420px;">
-          <div class="touch-pad" id="touchPad">
-            <div class="btn" data-dir="up">↑</div>
-            <div class="btn" data-dir="up-right" style="visibility:hidden"></div>
-            <div class="btn" data-dir="right">→</div>
-
-            <div class="btn" data-dir="left">←</div>
-            <div class="btn" data-dir="down" style="background:transparent; border:none; visibility:hidden"></div>
-            <div class="btn" data-dir="down">↓</div>
-
-            <div style="grid-column:1/span3; display:flex; gap:8px; justify-content:center; margin-top:6px;">
-              <div class="btn" id="btnSpeed" style="width:auto">Speed x<span id="speedVal">1</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
     </div>
   </div>
 
 <script>
 /*
-  Neon Snake
-  - Grid-based snake game with keyboard + touch input
-  - localStorage for high score
-  - Configurable grid size & wrap-around option
+  Realistic Snake (upgrade of classic snake logic)
+  - Grid logic retained (snake moves tile-by-tile), but drawn with smooth curve interpolation.
+  - Scale pattern generated via offscreen canvas and used as fill pattern for body.
+  - Head rendered with eye + flicking tongue animation.
+  - Smooth transitions between tiles by interpolating positions for drawing.
 */
 
-(() => {
-  // Elements
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
-  const scoreEl = document.getElementById('score');
-  const highEl = document.getElementById('highscore');
-  const startBtn = document.getElementById('startBtn');
-  const pauseBtn = document.getElementById('pauseBtn');
-  const speedUp = document.getElementById('speedUp');
-  const speedDown = document.getElementById('speedDown');
-  const resetHigh = document.getElementById('resetHigh');
-  const gridSizeSel = document.getElementById('gridSize');
-  const wrapToggle = document.getElementById('wrapToggle');
-  const speedVal = document.getElementById('speedVal');
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d', { alpha: false });
+const scoreEl = document.getElementById('score');
+const highEl = document.getElementById('high');
+const startBtn = document.getElementById('start');
+const pauseBtn = document.getElementById('pause');
+const resetBtn = document.getElementById('reset');
+const faster = document.getElementById('faster');
+const slower = document.getElementById('slower');
+const speedLabel = document.getElementById('speedLabel');
+const gridSelect = document.getElementById('grid');
+const wrapCheckbox = document.getElementById('wrap');
 
-  // Game state
-  let grid = 20;
-  let tileSize = 30;
-  let snake = [];
-  let dir = { x: 1, y: 0 }; // moving right initially
-  let nextDir = null;
-  let food = null;
-  let score = 0;
-  let high = parseInt(localStorage.getItem('neonSnakeHigh') || '0', 10);
-  let running = false;
-  let paused = false;
-  let speed = 1; // multiplier
-  let lastTick = 0;
-  let tickInterval = 120; // ms per step at speed=1
-  let wrap = false;
+const upBtn = document.getElementById('up');
+const downBtn = document.getElementById('down');
+const leftBtn = document.getElementById('left');
+const rightBtn = document.getElementById('right');
 
-  highEl.textContent = high;
+let DPR = Math.max(1, window.devicePixelRatio || 1);
 
-  // Resize canvas to keep square and responsive
-  function resizeCanvas() {
-    const rect = canvas.getBoundingClientRect();
-    const minSide = Math.min(rect.width, window.innerHeight * 0.7);
-    canvas.style.width = minSide + 'px';
-    canvas.style.height = minSide + 'px';
+function resizeCanvas() {
+  // Maintain square canvas fitting container width
+  const rect = canvas.getBoundingClientRect();
+  const size = Math.min(window.innerWidth - 80, 720);
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
+  canvas.width = Math.floor(size * DPR);
+  canvas.height = Math.floor(size * DPR);
+}
+window.addEventListener('resize', () => { resizeCanvas(); draw(); });
+resizeCanvas();
+
+/* -------------------------
+   Game state and settings
+   -------------------------*/
+let grid = parseInt(gridSelect.value, 10);
+let tile = Math.floor(canvas.width / grid);
+let wrap = wrapCheckbox.checked;
+let speed = 1.0; // speed multiplier (1x default)
+let intervalBase = 140; // ms per grid step at speed=1
+let running = false, paused = false;
+let score = 0;
+let high = parseInt(localStorage.getItem('realisticSnakeHigh') || '0', 10); highEl.textContent = high;
+
+let snake = []; // array of {x,y}
+let dir = {x:1,y:0}; // current moving direction (grid)
+let nextDir = null;
+let food = null;
+let lastStepTime = 0;
+let animTime = 0;
+let headTonguePhase = 0;
+
+/* -------------------------
+   Visual assets: scales pattern
+   -------------------------*/
+let scalePattern = null;
+
+function createScalePattern(tileSizePx) {
+  // Offscreen canvas to draw repeating scale motif
+  const off = document.createElement('canvas');
+  const s = Math.max(8, Math.floor(tileSizePx/3));
+  off.width = s*2;
+  off.height = s*2;
+  const g = off.getContext('2d');
+
+  // base gradient
+  const lg = g.createLinearGradient(0,0,off.width,off.height);
+  lg.addColorStop(0, '#447a4a');
+  lg.addColorStop(1, '#2b5b35');
+  g.fillStyle = lg;
+  g.fillRect(0,0,off.width,off.height);
+
+  // draw scale arcs repeated
+  g.fillStyle = 'rgba(255,255,255,0.07)';
+  g.beginPath();
+  for (let y = s/2; y < off.height + s; y += s) {
+    for (let x = 0; x < off.width + s; x += s) {
+      g.moveTo(x, y);
+      g.arc(x, y, s*0.9, Math.PI, 2*Math.PI);
+    }
   }
-  window.addEventListener('resize', resizeCanvas);
-  resizeCanvas();
+  g.fill();
 
-  function initGame(resetScore = true) {
-    grid = parseInt(gridSizeSel.value, 10);
-    wrap = wrapToggle.checked;
-    tileSize = Math.floor(canvas.width / grid);
-    // Initialize snake in center
-    const cx = Math.floor(grid/2);
-    const cy = Math.floor(grid/2);
-    snake = [{x: cx, y: cy}, {x: cx-1, y: cy}, {x: cx-2, y: cy}];
-    dir = {x:1, y:0};
+  // darker arcs to give depth
+  g.fillStyle = 'rgba(0,0,0,0.14)';
+  g.beginPath();
+  for (let y = s/2; y < off.height + s; y += s) {
+    for (let x = s/2; x < off.width + s; x += s) {
+      g.moveTo(x, y);
+      g.arc(x, y, s*0.9, Math.PI, 2*Math.PI);
+    }
+  }
+  g.fill();
+
+  return ctx.createPattern(off, 'repeat');
+}
+
+/* -------------------------
+   Game functions
+   -------------------------*/
+function initGame(resetScore = true) {
+  grid = parseInt(gridSelect.value, 10);
+  wrap = wrapCheckbox.checked;
+  tile = Math.floor(canvas.width / grid);
+
+  if (resetScore) score = 0;
+  scoreEl.textContent = score;
+
+  // reset snake in center with length 5
+  const cx = Math.floor(grid/2);
+  const cy = Math.floor(grid/2);
+  snake = [];
+  for (let i = 0; i < 5; i++) snake.push({x: cx - i, y: cy});
+
+  dir = {x:1, y:0}; nextDir = null;
+  placeFood();
+  scalePattern = createScalePattern(tile);
+  draw();
+}
+
+function placeFood() {
+  // place food not on snake
+  let tries = 0;
+  while (tries++ < 2000) {
+    const x = Math.floor(Math.random() * grid);
+    const y = Math.floor(Math.random() * grid);
+    if (!snake.some(s => s.x === x && s.y === y)) {
+      food = {x,y};
+      return;
+    }
+  }
+  // fallback
+  food = {x:0,y:0};
+}
+
+function step() {
+  // commit nextDir if valid (no 180)
+  if (nextDir) {
+    if (!(nextDir.x === -dir.x && nextDir.y === -dir.y)) {
+      dir = nextDir;
+    }
     nextDir = null;
-    placeFood();
-    if (resetScore) score = 0;
-    scoreEl.textContent = score;
   }
 
-  function placeFood() {
-    let tries = 0;
-    while (tries < 1000) {
-      const fx = Math.floor(Math.random() * grid);
-      const fy = Math.floor(Math.random() * grid);
-      if (!snake.some(s => s.x === fx && s.y === fy)) {
-        food = {x: fx, y: fy};
-        return;
-      }
-      tries++;
-    }
-  }
+  const nx = snake[0].x + dir.x;
+  const ny = snake[0].y + dir.y;
+  let head = {x: nx, y: ny};
 
-  function step() {
-    // Apply nextDir if set (prevents 180-degree)
-    if (nextDir) {
-      if (!(nextDir.x === -dir.x && nextDir.y === -dir.y)) {
-        dir = nextDir;
-      }
-      nextDir = null;
-    }
-
-    const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
-
-    // Wrap or check walls
-    if (wrap) {
-      head.x = (head.x + grid) % grid;
-      head.y = (head.y + grid) % grid;
-    } else {
-      if (head.x < 0 || head.x >= grid || head.y < 0 || head.y >= grid) {
-        gameOver();
-        return;
-      }
-    }
-
-    // Self-collision
-    if (snake.some(s => s.x === head.x && s.y === head.y)) {
+  // wrapping or collision with wall
+  if (wrap) {
+    head.x = (head.x + grid) % grid;
+    head.y = (head.y + grid) % grid;
+  } else {
+    if (head.x < 0 || head.x >= grid || head.y < 0 || head.y >= grid) {
       gameOver();
       return;
     }
+  }
 
-    snake.unshift(head);
+  // self collision
+  if (snake.some(s => s.x === head.x && s.y === head.y)) {
+    gameOver();
+    return;
+  }
 
-    // Eat food?
-    if (food && head.x === food.x && head.y === food.y) {
-      score += 10;
-      if (score > high) {
-        high = score;
-        localStorage.setItem('neonSnakeHigh', String(high));
-        highEl.textContent = high;
-      }
-      scoreEl.textContent = score;
-      placeFood();
-      // increase speed slightly every 50 points
-      if (score % 50 === 0) {
-        speed = Math.min(4, +(speed + 0.25).toFixed(2));
-        speedVal.textContent = speed;
-      }
-    } else {
-      snake.pop();
+  snake.unshift(head);
+
+  // eat food?
+  if (food && head.x === food.x && head.y === food.y) {
+    score += 10;
+    scoreEl.textContent = score;
+    if (score > high) { high = score; highEl.textContent = high; localStorage.setItem('realisticSnakeHigh', String(high)); }
+    placeFood();
+  } else {
+    snake.pop();
+  }
+}
+
+/* -------------------------
+   Drawing helpers: smooth curve
+   -------------------------*/
+function gridToPx(cell) {
+  return { x: (cell.x + 0.5) * tile, y: (cell.y + 0.5) * tile };
+}
+
+// draw snake as smooth ribbon using quadratic curve through points
+function drawSnakeSmooth(progress) {
+  // progress is [0..1) advancement from previous step toward next tile for head
+  // We'll compute world-space points for each segment using interpolation between prev and current.
+  const points = [];
+  for (let i = 0; i < snake.length; i++) {
+    const seg = snake[i];
+    let next = snake[i+1] || seg;
+    // For head (i===0), interpolate using dir and progress to get smooth movement
+    let px = seg.x, py = seg.y;
+    if (i === 0 && progress > 0) {
+      px = seg.x - dir.x * (1 - progress);
+      py = seg.y - dir.y * (1 - progress);
+    }
+    points.push(gridToPx({x:px, y:py}));
+  }
+
+  // create path centreline
+  ctx.save();
+  ctx.lineWidth = Math.max(12, tile * 0.9);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  // stroke background soft shadow
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath();
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else {
+      const mid = { x: (points[i-1].x + p.x) / 2, y: (points[i-1].y + p.y) / 2 };
+      ctx.quadraticCurveTo(points[i-1].x, points[i-1].y, mid.x, mid.y);
     }
   }
+  ctx.stroke();
 
-  function gameOver() {
-    running = false;
-    paused = false;
-    alert(`Game Over! Score: ${score}`);
-    initGame(true);
-    draw();
+  // fill with scale pattern by stroking along the path on an offscreen clipped area
+  // We'll draw the broad body using path and then fill with pattern
+  // Build the path again but as a thick closed shape
+  const radius = Math.max(10, tile * 0.46) * DPR;
+
+  // Create path for body centerline and generate stroked path to fill pattern
+  const path = new Path2D();
+  path.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i-1], cur = points[i];
+    const mid = { x: (prev.x + cur.x)/2, y: (prev.y + cur.y)/2 };
+    path.quadraticCurveTo(prev.x, prev.y, mid.x, mid.y);
+  }
+  // extend to last
+  const last = points[points.length-1];
+  path.lineTo(last.x, last.y);
+
+  // To create a closed shape, we approximate by stroking into an offscreen canvas mask
+  // Simpler: draw filled rounded rectangles across segments to simulate continuous body
+  ctx.lineWidth = 1;
+  if (scalePattern) ctx.fillStyle = scalePattern;
+  else ctx.fillStyle = '#2c6b3b';
+
+  // Draw many overlapping circles along centreline to form a smooth body, then overlay highlights
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    const segRad = Math.max(8, tile * 0.46) * DPR * (1 - i / (points.length + 4)); // taper tail
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, segRad, 0, Math.PI*2);
+    ctx.fill();
   }
 
-  // Drawing
-  function drawGrid() {
-    const w = canvas.width;
-    const h = canvas.height;
-    ctx.clearRect(0,0,w,h);
-    // subtle background
-    const grad = ctx.createLinearGradient(0,0,0,h);
-    grad.addColorStop(0,'#072033');
-    grad.addColorStop(1,'#051228');
+  // subtle top highlight
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    const segRad = Math.max(8, tile * 0.46) * DPR * (1 - i / (points.length + 4));
+    const grad = ctx.createRadialGradient(p.x - segRad*0.3, p.y - segRad*0.6, segRad*0.1, p.x, p.y, segRad*1.4);
+    grad.addColorStop(0, 'rgba(255,255,255,0.06)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = grad;
-    ctx.fillRect(0,0,w,h);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, segRad, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.restore();
 
-    // small grid lines
-    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-    ctx.lineWidth = 1;
-    for (let i=0;i<=grid;i++){
-      ctx.beginPath();
-      ctx.moveTo(i*tileSize,0);
-      ctx.lineTo(i*tileSize,h);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(0,i*tileSize);
-      ctx.lineTo(w,i*tileSize);
-      ctx.stroke();
-    }
+  // draw head details on top
+  drawHead(points[0], dir, headTonguePhase * 2*Math.PI);
+}
+
+// draws the head (ellipse + eyes + tongue) at position p (pixel coords)
+function drawHead(p, dirVec, tonguePhase) {
+  ctx.save();
+  // orientation angle
+  const angle = Math.atan2(dirVec.y, dirVec.x);
+  ctx.translate(p.x, p.y);
+  ctx.rotate(angle);
+
+  const headLen = tile * 0.98 * DPR;
+  const headW = tile * 0.7 * DPR;
+  // head main ellipse
+  ctx.beginPath();
+  ctx.ellipse(0, 0, headLen*0.6, headW*0.8, 0, 0, Math.PI*2);
+  // fill with gradient
+  const g = ctx.createLinearGradient(-headLen, -headW, headLen, headW);
+  g.addColorStop(0, '#6aa369');
+  g.addColorStop(1, '#2a6538');
+  ctx.fillStyle = g;
+  ctx.fill();
+  // dark nose
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath(); ctx.ellipse(headLen*0.35, 0, headLen*0.12, headW*0.2, 0, 0, Math.PI*2); ctx.fill();
+
+  // eyes (left & right)
+  const eyeOffsetY = -headW*0.25;
+  const eyeOffsetX = headLen*0.05;
+  const eyeR = Math.max(3, tile * 0.09) * DPR;
+  ctx.fillStyle = '#fff';
+  // left eye
+  ctx.beginPath(); ctx.ellipse(-eyeOffsetX, eyeOffsetY, eyeR, eyeR*1.1, 0, 0, Math.PI*2); ctx.fill();
+  // right eye
+  ctx.beginPath(); ctx.ellipse(eyeOffsetX*1.2, eyeOffsetY, eyeR, eyeR*1.1, 0, 0, Math.PI*2); ctx.fill();
+  // pupils
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.arc(-eyeOffsetX + eyeR*0.25, eyeOffsetY, eyeR*0.45, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(eyeOffsetX*1.2 + eyeR*0.25, eyeOffsetY, eyeR*0.45, 0, Math.PI*2); ctx.fill();
+
+  // tongue flick (animated)
+  const tongueLen = headLen * 0.6;
+  const t = Math.sin(tonguePhase) * 0.6 + 0.8;
+  ctx.strokeStyle = '#c71b1b';
+  ctx.lineWidth = Math.max(2, tile * 0.06) * DPR;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(headLen*0.45, 0);
+  ctx.quadraticCurveTo(headLen*0.6, 0 + headW*0.25 * t, headLen*0.9 * t, 0);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+/* -------------------------
+   Draw everything
+   -------------------------*/
+function draw() {
+  // clear
+  ctx.fillStyle = '#07120b';
+  ctx.fillRect(0,0,canvas.width, canvas.height);
+
+  // grid background subtle
+  const cols = grid, rows = grid;
+  ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+  ctx.lineWidth = Math.max(1, DPR * 0.6);
+  for (let i = 0; i <= cols; i++) {
+    const x = i * tile;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvas.height);
+    ctx.stroke();
+  }
+  for (let i = 0; i <= rows; i++) {
+    const y = i * tile;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.stroke();
   }
 
-  function draw() {
-    // adapt drawing to actual displayed size to keep crisp squares
-    const displayW = canvas.clientWidth;
-    canvas.width = displayW;
-    canvas.height = displayW;
-    tileSize = Math.floor(canvas.width / grid);
-    drawGrid();
-
-    // draw food
-    if (food) {
-      drawCell(food.x, food.y, '#ffcf4d', true, '#e69a00');
-    }
-
-    // draw snake body
-    for (let i=snake.length-1;i>=0;i--){
-      const s = snake[i];
-      const hue = 200 - Math.min(160, i*6);
-      const color = i===0 ? 'linear-gradient' : `rgba(255,255,255,0.06)`;
-      // head glow
-      if (i===0) drawCell(s.x,s.y, '#7c5cff', true, '#00e5ff', 14);
-      else drawCell(s.x,s.y, '#16405a', false, '#0f9bbf', 6);
-    }
+  // draw food as glossy orb
+  if (food) {
+    const f = gridToPx(food);
+    const r = tile * 0.36 * DPR;
+    const grad = ctx.createRadialGradient(f.x - r*0.4, f.y - r*0.4, r*0.1, f.x, f.y, r*1.6);
+    grad.addColorStop(0, '#ffd27a');
+    grad.addColorStop(1, '#d96f1a');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, Math.PI*2); ctx.fill();
+    // small highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.beginPath(); ctx.arc(f.x - r*0.35, f.y - r*0.45, r*0.2, 0, Math.PI*2); ctx.fill();
   }
 
-  function drawCell(x,y, fill, glow=false, stroke='#000', blur=6){
-    const px = x*tileSize;
-    const py = y*tileSize;
-    // glow effect
-    if (glow) {
-      ctx.save();
-      ctx.shadowColor = stroke;
-      ctx.shadowBlur = blur;
-      ctx.fillStyle = fill;
-      ctx.fillRect(px+2,py+2,tileSize-4,tileSize-4);
-      ctx.restore();
-    } else {
-      ctx.fillStyle = fill;
-      ctx.fillRect(px+2,py+2,tileSize-4,tileSize-4);
-      // subtle border
-      ctx.strokeStyle = 'rgba(0,0,0,0.25)';
-      ctx.strokeRect(px+2,py+2,tileSize-4,tileSize-4);
-    }
-  }
+  // compute smooth progress between steps for animation
+  const now = performance.now();
+  let elapsed = Math.max(0, now - lastStepTime);
+  const interval = Math.max(30, intervalBase / speed);
+  let progress = Math.min(1, elapsed / interval);
 
-  // Main loop
-  function loop(ts) {
-    if (!running || paused) {
-      lastTick = ts;
-      requestAnimationFrame(loop);
-      return;
-    }
-    if (!lastTick) lastTick = ts;
-    const elapsed = ts - lastTick;
-    const interval = Math.max(30, tickInterval / speed);
-    if (elapsed >= interval) {
-      step();
-      draw();
-      lastTick = ts;
-    }
+  // drawing snake (smooth)
+  drawSnakeSmooth(progress);
+
+  // optionally draw small shadow under head
+}
+
+/* -------------------------
+   Game loop
+   -------------------------*/
+function loop(ts) {
+  if (!running || paused) {
     requestAnimationFrame(loop);
+    return;
+  }
+  if (!lastStepTime) lastStepTime = performance.now();
+
+  const now = performance.now();
+  const interval = Math.max(30, intervalBase / speed);
+  if (now - lastStepTime >= interval) {
+    step();
+    lastStepTime = now;
+    headTonguePhase += 0.5;
+  } else {
+    headTonguePhase += 0.02;
   }
 
-  // Input handling
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') setDir(0,-1);
-    if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') setDir(0,1);
-    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') setDir(-1,0);
-    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') setDir(1,0);
-    if (e.key === ' ' ) { // space to pause
-      togglePause();
-    }
-  });
+  draw();
+  requestAnimationFrame(loop);
+}
 
-  function setDir(x,y) {
-    nextDir = {x,y};
+/* -------------------------
+   Input handling
+   -------------------------*/
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') nextDir = {x:0,y:-1};
+  if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') nextDir = {x:0,y:1};
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') nextDir = {x:-1,y:0};
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') nextDir = {x:1,y:0};
+  if (e.key === ' ' || e.key === 'Spacebar') togglePause();
+  // prevent scroll on space
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+});
+
+// touch / swipe
+let touchStart = null;
+canvas.addEventListener('touchstart', (ev) => {
+  const t = ev.touches[0];
+  touchStart = {x: t.clientX, y: t.clientY};
+}, {passive:true});
+canvas.addEventListener('touchend', (ev) => {
+  if (!touchStart) return;
+  const t = ev.changedTouches[0];
+  const dx = t.clientX - touchStart.x;
+  const dy = t.clientY - touchStart.y;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    if (dx > 20) nextDir = {x:1,y:0};
+    else if (dx < -20) nextDir = {x:-1,y:0};
+  } else {
+    if (dy > 20) nextDir = {x:0,y:1};
+    else if (dy < -20) nextDir = {x:0,y:-1};
   }
+  touchStart = null;
+}, {passive:true});
 
-  // Touch / swipe controls
-  let touchStart = null;
-  canvas.addEventListener('touchstart', (e) => {
-    const t = e.touches[0];
-    touchStart = {x: t.clientX, y: t.clientY};
-  }, {passive:true});
-  canvas.addEventListener('touchend', (e) => {
-    if (!touchStart) return;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - touchStart.x;
-    const dy = t.clientY - touchStart.y;
-    const adx = Math.abs(dx), ady = Math.abs(dy);
-    if (Math.max(adx, ady) < 20) return;
-    if (adx > ady) {
-      setDir(dx > 0 ? 1 : -1, 0);
-    } else {
-      setDir(0, dy > 0 ? 1 : -1);
-    }
-    touchStart = null;
-  }, {passive:true});
+// on-screen buttons
+upBtn.addEventListener('click', ()=> nextDir = {x:0,y:-1});
+downBtn.addEventListener('click', ()=> nextDir = {x:0,y:1});
+leftBtn.addEventListener('click', ()=> nextDir = {x:-1,y:0});
+rightBtn.addEventListener('click', ()=> nextDir = {x:1,y:0});
 
-  // On-screen buttons
-  document.querySelectorAll('[data-dir]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const d = btn.getAttribute('data-dir');
-      if (d === 'up') setDir(0,-1);
-      if (d === 'down') setDir(0,1);
-      if (d === 'left') setDir(-1,0);
-      if (d === 'right') setDir(1,0);
-    });
-  });
-
-  // Buttons
-  startBtn.addEventListener('click', () => {
+/* -------------------------
+   Buttons & UI actions
+   -------------------------*/
+startBtn.addEventListener('click', () => {
+  if (!running) {
     running = true;
     paused = false;
     initGame(true);
-    lastTick = 0;
+    lastStepTime = performance.now();
     requestAnimationFrame(loop);
-  });
-
-  pauseBtn.addEventListener('click', togglePause);
-
-  function togglePause() {
-    if (!running) return;
-    paused = !paused;
-    pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+  } else {
+    // restart same game
+    initGame(true);
   }
+});
+pauseBtn.addEventListener('click', togglePause);
+resetBtn.addEventListener('click', () => { running = false; paused = false; initGame(true); });
 
-  speedUp.addEventListener('click', () => {
-    speed = Math.min(4, +(speed + 0.25).toFixed(2));
-    speedVal.textContent = speed;
-  });
-  speedDown.addEventListener('click', () => {
-    speed = Math.max(0.5, +(speed - 0.25).toFixed(2));
-    speedVal.textContent = speed;
-  });
-  resetHigh.addEventListener('click', () => {
-    if (confirm('Reset high score?')) {
-      high = 0; localStorage.removeItem('neonSnakeHigh'); highEl.textContent = high;
-    }
-  });
+faster.addEventListener('click', ()=>{ speed = Math.min(4, +(speed + 0.25).toFixed(2)); speedLabel.textContent = speed; });
+slower.addEventListener('click', ()=>{ speed = Math.max(0.5, +(speed - 0.25).toFixed(2)); speedLabel.textContent = speed; });
 
-  // When grid change or wrap toggled, re-init if running
-  [gridSizeSel, wrapToggle].forEach(el => el.addEventListener('change', () => {
-    if (running) initGame(true);
-    draw();
-  }));
+gridSelect.addEventListener('change', ()=> { initGame(true); });
+wrapCheckbox.addEventListener('change', ()=> { wrap = wrapCheckbox.checked; });
 
-  // start paused demo
+function togglePause() {
+  if (!running) return;
+  paused = !paused;
+  pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+}
+
+/* -------------------------
+   Game over
+   -------------------------*/
+function gameOver() {
+  running = false;
+  paused = false;
+  alert(`Game over! Score: ${score}`);
+  // maintain highscore already set
   initGame(true);
-  draw();
+}
 
-  // small auto-start option: uncomment to auto-start
-  // running = true; requestAnimationFrame(loop);
+/* -------------------------
+   Start initial state
+   -------------------------*/
+initGame(true);
 
-})();
+/* -------------------------
+   Optional: Auto-start uncomment if desired
+   -------------------------*/
+// running = true; lastStepTime = performance.now(); requestAnimationFrame(loop);
+
 </script>
 </body>
 </html>
